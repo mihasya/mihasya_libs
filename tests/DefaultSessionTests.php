@@ -1,5 +1,5 @@
 <?php
-require_once('mihasya/mihasya_session.php');
+require_once('../mihasya_session.php');
 require_once('PHPUnit/Framework.php');
 
 
@@ -40,7 +40,7 @@ class DefaultSessionTests extends PHPUnit_Framework_TestCase {
     $this->s->destroy();
     $this->assertEquals($_SESSION, array());
   } TODO: figure out why this fails; most likely b/c headers are never sent
-    so $_SESSION is just a dumb variable, session_destroy() doesn't affect it*/ 
+    so $_SESSION is just a dumb variable, session_destroy() doesn't affect it*/
   /*public function testGenerateID() {
     $oldID = $this->s->getID();
     @$this->s->generate_id();

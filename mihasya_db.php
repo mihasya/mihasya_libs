@@ -7,7 +7,7 @@ function db_insert($pdo, $table, $kvValues) {
   foreach ($kvValues as $k=>$v) {
     if (is_array($v)) {
       $placeHolders[] = $v['func']; //plug the user supplied function instead of the ?
-      $values = array_merge($values, $v['vals']);
+      $values = array_merge($values, $v['values']);
     } else {
       $placeHolders[] = '?';
       $values[] = $v;
@@ -17,8 +17,15 @@ function db_insert($pdo, $table, $kvValues) {
       .implode(',', $keys).') VALUES ('
       .implode(',', $placeHolders).')';
   $stmt = $pdo->prepare($q);
+  if (!$stmt) {
+      $err = $pdo->errorInfo();
+      throw new Exception('Query Failed at prepare! ' . $err[2], $err[1]);
+  }
   $res = $stmt->execute($values); //execute the query, using the $values array to plug the placeholders
-  if(!$res) return $stmt->errorInfo();
+  if(!$res) {
+      $err = $stmt->errorInfo();
+      throw new Exception('Query Failed at execute! ' . $err[2], $err[1]);
+  }
   else return $pdo->lastInsertId(); //return what's useful; this will never be 0 on success
 }
 
@@ -29,7 +36,7 @@ function db_update($pdo, $table, $where, $what) {
     if (is_array($v)) {
       //there's a function involved
       $whatStr.=$k.'='.$v['func'].',';
-      $values = array_merge($values, $v['vals']);
+      $values = array_merge($values, $v['values']);
     } else {
       //just a value
       $whatStr.=$k.'=?,';
@@ -40,7 +47,7 @@ function db_update($pdo, $table, $where, $what) {
     if (is_array($v)) {
       //there's a function involved
       $whereStr.=$k.'='.$v['func'].' AND ';
-      $values = array_merge($values, $v['vals']);
+      $values = array_merge($values, $v['values']);
     } else {
       //just a value
       $whereStr.=$k.'=? AND ';
@@ -63,7 +70,7 @@ function db_get($pdo, $table, $where=null, $what=null, $postfix=null) {
   if (!$what || $what=='*') {
     $whatStr = '*';
   } else {
-    $whatStr = implode(',',$what); 
+    $whatStr = implode(',',$what);
   }
   if ($where) {
     $whereStr.=' WHERE ';
@@ -75,7 +82,7 @@ function db_get($pdo, $table, $where=null, $what=null, $postfix=null) {
         if (is_array($v)) {
           //there's a function involved
           $whereStr.=$k.'='.$v['func'].' AND ';
-          $values = array_merge($values, $v['vals']);
+          $values = array_merge($values, $v['values']);
         } else {
           //just a value
           $whereStr.=$k.'=? AND ';
@@ -106,14 +113,14 @@ function db_delete($pdo, $table, $where, $postfix=null) {
       if (is_array($v)) {
         //there's a function involved
         $whereStr.=$k.'='.$v['func'].' AND ';
-        $values = array_merge($values, $v['vals']);
+        $values = array_merge($values, $v['values']);
       } else {
         //just a value
         $whereStr.=$k.'=? AND ';
         $values[] = $v;
       }
     }
-  } 
+  }
   $whereStr = rtrim($whereStr, ' AND ');
   $q = 'DELETE FROM '.$table.' '.$whereStr;
   if ($postfix) {
@@ -125,6 +132,6 @@ function db_delete($pdo, $table, $where, $postfix=null) {
   else return $stmt->rowCount();
 }
 
-//TODO: write a function to interpret unique key errors using 
+//TODO: write a function to interpret unique key errors using
 //use "show index from tablename" and a local copy of the database for performance
 ?>

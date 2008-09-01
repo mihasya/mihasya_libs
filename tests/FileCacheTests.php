@@ -1,5 +1,5 @@
 <?php
-require_once('mihasya/mihasya_cache.php');
+require_once('../mihasya_cache.php');
 require_once('PHPUnit/Framework.php');
 
 class FileCacheTests extends PHPUnit_Framework_TestCase {
@@ -19,11 +19,11 @@ class FileCacheTests extends PHPUnit_Framework_TestCase {
   }
   public function testSet() {
     $this->c = cache('fileCache2');
-    $this->c->set('foo', 'this is a test value');  
+    $this->c->set('foo', 'this is a test value');
     $realKey = md5('foo');
     $this->assertTrue(file_exists($realKey));
   }
-  
+
   public function testGet() {
     $this->c = cache('fileCache2');
     $this->c->get('foo');
