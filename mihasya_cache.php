@@ -71,7 +71,7 @@ class fileCacheHdl extends cacheHdl{
         }
         if (!$fcontent) { return false; }
         $content = unserialize($fcontent);
-        if ($content->ttl > time()) {
+        if ($content->ttl < time() && $content->ttl != 0) {
             unlink($keyPath);
             return false;
         }
@@ -83,8 +83,8 @@ class fileCacheHdl extends cacheHdl{
         $content = new stdClass();
         $content->ttl = $ttl;
         $content->value = $value;
-        $f = fopen($this->_path.'/'.$realKey, 'w');
-        $result = fwrite($f, serialize($content));
+        $f = fopen($this->_path.'/'.$realKey, 'w+');
+        $result = @fwrite($f, serialize($content));
         fclose($f);
         return $result;
     }
