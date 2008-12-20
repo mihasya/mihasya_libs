@@ -25,21 +25,18 @@ function cache_init($hdlName, $type='file', $initArgs = array()) {
 }
 
 abstract class cacheHdl {
-    //TODO: add initArgs validation to __construct; iterate over $this->_requiredArgs
-    //and set those in the handler class definitions
     abstract function __construct($initArgs);
     abstract function get($key);
     abstract function set($key, $value, $ttl=null);
+    abstract function delete($key, $timeout=null);
     protected function _getRealKey($key) {
-        //TODO: store the key so that we don't have to run m5 every time
-        //TODO: make this modifiable so that the user can define own hash/salt
+        //TODO: make this modifiable so user can define own hash/salt
         return md5($key);
     }
 }
 
 class apcCacheHdl extends cacheHdl{
     function __construct($initArgs) {
-        //TODO: maybe set a default ttl?
         if (!function_exists('apc_fetch')) {
             throw new Exception ("APC does not appear to be enabled");
         }
@@ -50,24 +47,56 @@ class apcCacheHdl extends cacheHdl{
     function set($key, $value, $ttl=null) {
         return apc_store($this->_getRealKey($key), $value, $ttl);
     }
+    function delete($key, $timeout=null) {
+        if (!$timeout) {
+            return apc_delete($this->_getRealKey($key));
+        } else {
+            return apc_store($this->_getRealKey($key), $value, $timeout);
+        }
+    }
 }
 class fileCacheHdl extends cacheHdl{
     private $_path;
-    private $_ttl;
+
     function __construct($initArgs) {
-        //TODO: check for empty fields
-        $this->_path = $initArgs['path'];
-        $this->_ttl = $initArgs['ttl'];
+        $this->_path = $initArgs['path'] ? $initArgs['path'] : '.';
     }
     function get($key) {
-        //TODO: use $this->ttl and file's mtime to check if it's expired
+        $realKey = $this->_getRealKey($key);
+        $keyPath = $this->_path.'/'.$realKey;
+        try {
+            $fcontent = @fread(fopen($keyPath, 'r'), filesize($keyPath));
+        } catch (Exception $e) {
+            return false;
+        }
+        if (!$fcontent) { return false; }
+        $content = unserialize($fcontent);
+        if ($content->ttl > time()) {
+            unlink($keyPath);
+            return false;
+        }
+        return $content->value;
     }
     function set($key, $value, $ttl=null) {
         $realKey = $this->_getRealKey($key);
         $ttl = $ttl ? time()+$ttl : 0;
-        $f = fopen($this->path.'/'.$realKey, 'w');
-        fwrite($f, $value);
+        $content = new stdClass();
+        $content->ttl = $ttl;
+        $content->value = $value;
+        $f = fopen($this->_path.'/'.$realKey, 'w');
+        $result = fwrite($f, serialize($content));
         fclose($f);
+        return $result;
+    }
+    function delete($key, $timeout=null) {
+        if (!$timeout) {
+            return unlink($this->_path.'/'.$this->_getRealKey($key));
+        } else {
+            if (!$value = $this->get($key)) {
+                return false;
+            }
+            return $this->set($key, $value, $timeout);
+        }
     }
 }
 ?>
