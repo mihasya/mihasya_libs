@@ -65,7 +65,7 @@ class fileCacheHdl extends cacheHdl{
         $realKey = $this->_getRealKey($key);
         $keyPath = $this->_path.'/'.$realKey;
         try {
-            $fcontent = @fread(fopen($keyPath, 'r'), filesize($keyPath));
+            $fcontent = @fread(@fopen($keyPath, 'r'), filesize($keyPath));
         } catch (Exception $e) {
             return false;
         }
@@ -84,9 +84,7 @@ class fileCacheHdl extends cacheHdl{
         $content->ttl = $ttl;
         $content->value = $value;
         $f = fopen($this->_path.'/'.$realKey, 'w+');
-        $result = @fwrite($f, serialize($content));
-        fclose($f);
-        return $result;
+        return @fwrite(@fopen($this->_path.'/'.$realKey, 'w+'), serialize($content));
     }
     function delete($key, $timeout=null) {
         if (!$timeout) {
